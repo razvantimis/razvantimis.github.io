@@ -1,28 +1,14 @@
 import {https} from "firebase-functions";
 import express from "express";
-import * as auth2 from "simple-oauth2";
-import randomstring from "randomstring";
+import {AuthorizationCode} from "simple-oauth2";
+import {
+  randomState,
+  renderResponse,
+} from "@openlab/vercel-netlify-cms-github";
+
 import config from "./config";
 
-function getScript(mess: string, content: any) {
-  return `<!doctype html><html><body><script>
-  (function() {
-    function receiveMessage(e) {
-      console.log("receiveMessage %o", e)
-      window.opener.postMessage(
-        'authorization:github:${mess}:${JSON.stringify(content)}',
-        e.origin
-      )
-      window.removeEventListener("message",receiveMessage,false);
-    }
-    window.addEventListener("message", receiveMessage, false)
-    console.log("Sending message: %o", "github")
-    window.opener.postMessage("authorizing:github", "*")
-    })()
-  </script></body></html>`;
-}
-
-const client = new auth2.AuthorizationCode({
+const client = new AuthorizationCode({
   client: {
     id: config.clientId,
     secret: config.clientSecret,
@@ -41,7 +27,7 @@ oauthApp.get("/auth", (req, res) => {
   const authorizationUri = client.authorizeURL({
     redirect_uri: config.redirectUrl,
     scope: "repo,user",
-    state: randomstring.generate(32),
+    state: randomState(),
   });
 
   res.redirect(authorizationUri);
@@ -53,14 +39,15 @@ oauthApp.get("/callback", async (req, res) => {
   };
 
   try {
-    const accesToken = await client.getToken(options);
-    return res.send(getScript("success", {
-      token: accesToken.token,
-      provider: config.provider,
+    const accessToken = await client.getToken(options);
+    const {token} = client.createToken(accessToken);
+    return res.send(renderResponse("success", {
+      token: token["token"].access_token,
+      provider: "github",
     }));
   } catch (error: any) {
     console.error("Access Token Error", error.message);
-    res.send(getScript("error", error));
+    res.send(renderResponse("error", error));
   }
   return;
 });

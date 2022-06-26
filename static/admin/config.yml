@@ -1,6 +1,6 @@
 backend:
   name: github
-  repo: timisdev/timisdev-website
+  repo: razvantimis/razvantimis.github.io
   branch: main
   base_url: https://us-central1-razvantimis-webpage.cloudfunctions.net/ # The base URL for your Firebase Function
   auth_endpoint: /oauthGithub/auth # The path to the OAuth endpoint of the function
